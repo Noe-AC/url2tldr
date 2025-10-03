@@ -68,7 +68,8 @@ The URL2TLDR Dash app requires the following Python libraries:
 - ``dash`` and ``dash-bootstrap-components``: for the user interface.
 - ``requests``: to fetch web content.
 - ``pandas``: for data manipulation.
-- ``youtube-transcript-api``: to extract YouTube video transcripts.
+- ``yt-dlp``: to fetch Youtube video metadata.
+- ``youtube-transcript-api``: to fetch YouTube video transcripts.
 
 ## 💡 Usage
 

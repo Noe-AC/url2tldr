@@ -1,3 +1,7 @@
+## 0.1.3 (2025-10-02)
+
+- Added `yt-dlp` in the `README`.
+
 ## 0.1.2 (2025-10-02)
 
 - Renamed the function `extract_comments` to `extract_reddit_comments`.
