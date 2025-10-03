@@ -25,6 +25,7 @@ import dash_bootstrap_components as dbc
 import requests
 import pandas as pd
 import re
+import yt_dlp
 from youtube_transcript_api import YouTubeTranscriptApi
 
 ################################################################################
@@ -58,7 +59,32 @@ def fetch_reddit_json(
     except Exception as e:
         raise RuntimeError(f"Could not fetch Reddit JSON: {e}")
 
-def extract_comments(
+def extract_reddit_metadata(
+    data: dict,
+) -> dict:
+    """
+    Extract basic metadata (title, subreddit, author, url) from Reddit JSON.
+
+    Args:
+        data (dict): JSON data from Reddit.
+
+    Returns:
+        dict: Metadata including title, subreddit, author, and permalink.
+    """
+    try:
+        post_data = data[0]["data"]["children"][0]["data"]
+        return {
+            "title": post_data.get("title"),
+            "subreddit": post_data.get("subreddit"),
+            "author": post_data.get("author"),
+            "score": post_data.get("score"),
+            "num_comments": post_data.get("num_comments"),
+            "permalink": "https://www.reddit.com" + post_data.get("permalink", "")
+        }
+    except Exception as e:
+        raise RuntimeError(f"Could not extract metadata: {e}")
+
+def extract_reddit_comments(
     data: dict,
 ) -> pd.DataFrame:
     """
@@ -105,12 +131,15 @@ def extract_comments(
     return df
 
 def generate_reddit_prompt(
+    meta: dict,
     df: pd.DataFrame,
 ) -> str:
     """
-    Generate a structured TL;DR prompt from a Reddit comments DataFrame.
+    Generate a structured TL;DR prompt from all Reddit comments
+    and thread metadata.
 
     Args:
+        meta (dict): Metadata with keys like title, subreddit, author, etc.
         df (pd.DataFrame): Flattened Reddit comments.
 
     Returns:
@@ -118,21 +147,37 @@ def generate_reddit_prompt(
     """
     if df.empty:
         return "No relevant comments found."
-    
-    text = "\n".join(df["body"].astype(str))
-    
+
+    # Include all comments (already filtered in extract_comments)
+    text = "\n".join(
+        f"- {row['author']}: {row['body']}"
+        for _, row in df.iterrows()
+    )
+
+    # Thread context
+    thread_info = (
+        f"Subreddit: r/{meta.get('subreddit', 'unknown')}\n"
+        f"Title: {meta.get('title', 'Untitled')}\n"
+        f"Author: {meta.get('author', 'unknown')}\n"
+        f"Post score: {meta.get('score', 'N/A')} | "
+        f"Comments: {meta.get('num_comments', 'N/A')}\n"
+        f"URL: {meta.get('permalink', '')}\n"
+    )
+
     prompt = (
         "You are an assistant that summarizes Reddit discussions.\n"
-        "Please read the following comments from a Reddit thread and provide a concise summary.\n"
+        "Please analyze the following thread and provide a concise summary:\n"
         "- Only include the most relevant information and opinions.\n"
         "- Format your output as clear bullet points.\n"
         "- Avoid unnecessary repetition or minor details.\n\n"
+        "Thread information:\n"
+        f"{thread_info}\n"
         "Reddit comments:\n\n"
         f"{text}"
     )
-    
-    return prompt[:100000]  # truncate if too long
 
+    # Cap at ~100k chars to avoid excessive token length
+    return prompt[:100000]
 
 ################################################################################
 ################################################################################
@@ -163,6 +208,39 @@ def extract_youtube_id(
             return match.group(1)
     return ""
 
+def fetch_youtube_metadata(
+    video_id: str,
+) -> dict:
+    """
+    Fetch metadata for a given YouTube video using yt_dlp.
+
+    Args:
+        video_id (str): The unique identifier of the YouTube video (e.g. "yHnVGosfKM8").
+
+    Returns:
+        dict: A dictionary containing the following keys:
+            - title (str): Title of the video
+            - channel (str): Name of the uploader/channel
+            - url (str): Full YouTube URL of the video
+            - length_seconds (int): Duration of the video in seconds
+            - publish_date (str): Upload date in YYYYMMDD format
+            - views (int): View count
+    """
+    url = f"https://www.youtube.com/watch?v={video_id}"
+    ydl_opts = {"quiet": True, "skip_download": True}
+    
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+    
+    return {
+        "title": info.get("title"),
+        "channel": info.get("uploader"),
+        "url": url,
+        "length_seconds": info.get("duration"),
+        "publish_date": info.get("upload_date"),
+        "views": info.get("view_count"),
+    }
+
 def fetch_youtube_transcript(
     video_id: str,
 ) -> list[dict]:
@@ -189,12 +267,14 @@ def fetch_youtube_transcript(
         raise RuntimeError(f"Could not fetch YouTube transcript: {e}")
 
 def generate_youtube_prompt(
+    meta: dict,
     transcript: list,
 ) -> str:
     """
-    Generate a TL;DR prompt from a YouTube transcript.
+    Generate a summarization prompt for a YouTube video.
 
     Args:
+        meta (dict): Metadata dictionary as returned by `fetch_youtube_metadata`.
         transcript (list): List of transcript entries.
 
     Returns:
@@ -204,18 +284,24 @@ def generate_youtube_prompt(
         return "No transcript available."
 
     # Combine all text
-    text = "".join(entry["text"] for entry in transcript)
+    text = " ".join(entry["text"] for entry in transcript)
 
     prompt = (
-        "You are an assistant that summarizes YouTube videos.\n"
-        "Please read the following transcript and provide a concise summary.\n"
-        "- Only include the most relevant information and insights.\n"
-        "- Format your output as clear bullet points.\n"
-        "- Avoid unnecessary repetition or minor details.\n\n"
-        "Transcript:\n\n"
+        f"You are an assistant that summarizes YouTube videos.\n"
+        f"Please read the following transcript and provide a concise summary:\n"
+        f"- Only include the most relevant information and insights.\n"
+        f"- Format your output as clear bullet points.\n"
+        f"- Avoid unnecessary repetition or minor details.\n\n"
+        f"Video information:\n"
+        f"- Title: {meta['title']}\n"
+        f"- Channel: {meta['channel']}\n"
+        f"- URL: {meta['url']}\n"
+        f"- Length (seconds): {meta['length_seconds']}\n"
+        f"- Publish date: {meta['publish_date']}\n"
+        f"- Views: {meta['views']}\n\n"
+        f"Transcript:\n\n"
         f"{text}"
     )
-
     return prompt[:100000]  # truncate if too long
 
 ################################################################################
@@ -225,76 +311,97 @@ def generate_youtube_prompt(
 def create_layout():
     return dbc.Container(
         [
-            # Header avec icône et titre centrés
             html.Div(
-                [
-                    html.Img(
-                        src="/assets/URL2TLDR_1024x1024.png",
-                        style={"height": "50px", "marginRight": "10px"}
+                children = [
+                    # Header avec icône et titre centrés
+                    html.Div(
+                        [
+                            html.Img(
+                                src="/assets/URL2TLDR_1024x1024.png",
+                                style={"height": "50px", "marginRight": "10px"}
+                            ),
+                            html.H1("URL2TLDR", style={"margin": 0})
+                        ],
+                        style={
+                            "display": "flex",
+                            "alignItems": "center",
+                            "justifyContent": "center",
+                            "marginBottom": "20px"
+                        }
                     ),
-                    html.H1("URL2TLDR", style={"margin": 0})
-                ],
-                style={
-                    "display": "flex",
-                    "alignItems": "center",
-                    "justifyContent": "center",
-                    "marginBottom": "20px"
-                }
-            ),
 
-            html.P(
-                "Instant summaries of YouTube videos and Reddit threads. Paste a URL below to get started!",
-                style={"textAlign": "center"}
-            ),
+                    html.P(
+                        "Instant summaries of YouTube videos and Reddit threads. Paste a URL below to get started!",
+                        style={"textAlign": "center"}
+                    ),
 
-            dcc.Input(
-                id="url-input",
-                type="text",
-                placeholder="Paste YouTube or Reddit URL here...",
-                value="",
-                style={"width": "100%", "marginBottom": "10px"}
-            ),
-            html.Br(),
-
-            dbc.Button("Generate TL;DR Prompt", id="generate-btn", color="primary", className="mb-3"),
-
-            html.Div(id="status-message", style={"marginTop": "10px"}),
-
-            html.H4("Generated TL;DR Prompt"),
-
-            # Spinner autour du textarea
-            dcc.Loading(
-                id="loading-spinner",
-                type="circle",
-                children=[
-                    dcc.Textarea(
-                        id="prompt-output",
-                        style={"width": "100%", "height": "300px"},
-                        readOnly=True
+                    dcc.Input(
+                        id="url-input",
+                        type="text",
+                        placeholder="Paste YouTube or Reddit URL here...",
+                        value="",
+                        style={"width": "100%", "marginBottom": "10px"}
                     ),
                     html.Br(),
-                    dcc.Clipboard(
-                        id="copy-btn",
-                        target_id="prompt-output",
-                        title="Click to copy the prompt to clipboard",
-                        content="📋 Copy Prompt to Clipboard",
-                        style={
-                            "marginTop": "10px",
-                            "backgroundColor": "#0d6efd",
-                            "color": "white",
-                            "border": "none",
-                            "padding": "5px 10px",
-                            "borderRadius": "5px",
-                            "cursor": "pointer",
-                            "display": "none"
-                        },
+
+                    dbc.Button("Generate TL;DR Prompt", id="generate-btn", color="primary", className="mb-3"),
+
+                    html.Div(id="status-message", style={"marginTop": "10px"}),
+
+                    html.H4("Generated TL;DR Prompt"),
+
+                    # Spinner autour du textarea
+                    dcc.Loading(
+                        id="loading-spinner",
+                        type="circle",
+                        children=[
+                            dcc.Textarea(
+                                id="prompt-output",
+                                style={"width": "100%", "height": "300px"},
+                                readOnly=True
+                            ),
+                            html.Br(),
+                            dcc.Clipboard(
+                                id="copy-btn",
+                                target_id="prompt-output",
+                                title="Click to copy the prompt to clipboard",
+                                content="📋 Copy Prompt to Clipboard",
+                                style={
+                                    "marginTop": "10px",
+                                    "backgroundColor": "#0d6efd",
+                                    "color": "white",
+                                    "border": "none",
+                                    "padding": "5px 10px",
+                                    "borderRadius": "5px",
+                                    "cursor": "pointer",
+                                    "display": "none"
+                                },
+                            )
+                        ],
+                        color="#0d6efd",
+                        fullscreen=False
                     )
                 ],
-                color="#0d6efd",
-                fullscreen=False
-            )
+                style = {
+                    "backgroundColor": "white",
+                    "borderRadius": "15px",
+                    "boxShadow": "0px 4px 15px rgba(0,0,0,0.2)",
+                    "padding": "30px",
+                    "maxWidth": "800px",
+                    "margin": "40px auto",
+                    "boxSizing": "border-box"
+                },
+            ),
         ],
-        fluid=True
+        fluid=True,
+        style = {
+            "backgroundColor": "#777777",
+            "minHeight": "100vh",
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "center",
+            "overflowY": "auto"
+        }
     )
 
 ################################################################################
@@ -321,9 +428,16 @@ def register_callbacks(
             try:
                 data = fetch_reddit_json(url)
                 if data:
-                    df = extract_comments(data)
+                    # Extract the metadata
+                    meta = extract_reddit_metadata(data)
+                    # Extract the comments
+                    df = extract_reddit_comments(data)
                     try:
-                        prompt = generate_reddit_prompt(df)
+                        # Generate the prompt
+                        prompt = generate_reddit_prompt(
+                            meta = meta,
+                            df   = df,
+                        )
                         return prompt, dbc.Alert("✅ Reddit prompt generated!", color="success")
                     except Exception as e:
                         return "", dbc.Alert(f"❌ Error generating Reddit prompt: {e}", color="danger")
@@ -336,12 +450,21 @@ def register_callbacks(
             if not video_id:
                 return "", dbc.Alert("❌ Could not extract YouTube video ID.", color="danger")
             try:
+                # Fetch the metadata
+                meta = fetch_youtube_metadata(video_id)
+            except Exception as e:
+                return "", dbc.Alert(f"❌ Error fetching YouTube metadata: {e}", color="danger")
+            try:
+                # Fetch the transcript
                 transcript = fetch_youtube_transcript(video_id)
             except Exception as e:
                 return "", dbc.Alert(f"❌ Error fetching YouTube transcript: {e}", color="danger")
 
             try:
-                prompt = generate_youtube_prompt(transcript)
+                prompt = generate_youtube_prompt(
+                    meta       = meta,
+                    transcript = transcript,
+                )
                 return prompt, dbc.Alert("✅ YouTube prompt generated!", color="success")
             except Exception as e:
                 return "", dbc.Alert(f"❌ Error generating YouTube prompt: {e}", color="danger")
