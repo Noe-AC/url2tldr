@@ -20,8 +20,11 @@ Simply paste a URL, and URL2TLDR will create a ready-to-use prompt that you can 
 
 - Paste a URL (YouTube or Reddit)
 - Automatic content extraction (captions or comments)
-- Generates a ready-to-use TL;DR prompt for any LLM (ChatGPT, Ollama, etc.)
-- Simple, clean Dash interface
+- Generates a ready-to-use TL;DR prompt
+- Direct integration with **Ollama** models
+- Simple, clean, and responsive Dash interface
+- Copy prompts or results to clipboard with one click
+- Choose Ollama model from a dropdown and run it directly in-app
 
 ## 🛠️ Installation
 
@@ -71,6 +74,7 @@ The URL2TLDR Dash app requires the following Python libraries:
 - ``yt-dlp``: to fetch Youtube video metadata.
 - ``youtube-transcript-api``: to fetch YouTube video transcripts.
 - ``ollama``: to run ollama prompts from inside the app.
+- Ollama CLI installed and configured (for running models directly)
 
 ## 💡 Usage
 
@@ -79,6 +83,7 @@ The URL2TLDR Dash app requires the following Python libraries:
 3. Review the extracted text (captions or comments).
 4. Copy the generated TL;DR prompt.
 5. Paste the prompt into your preferred LLM (ChatGPT, Ollama, etc.) to generate a summary.
+6. Optionally select an Ollama model and click *Run Ollama* to get a summary directly in the app.
 
 ## 📸 Screenshots
 

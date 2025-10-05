@@ -1,3 +1,7 @@
+## 0.1.7 (2025-10-05)
+
+- Improved the `README` to make it more explicit that Ollama is integrated in the app.
+
 ## 0.1.6 (2025-10-05)
 
 - Shortened the text in the *Generate prompt* button.
