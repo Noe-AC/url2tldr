@@ -1,3 +1,7 @@
+## 0.1.5 (2025-10-05)
+
+- New screenshot in the `README`.
+
 ## 0.1.4 (2025-10-04)
 
 - Reorganized the header of the app and removed the textual description of the app.
