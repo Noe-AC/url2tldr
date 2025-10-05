@@ -1,0 +1,8 @@
+html, body, .app-container, .dash-container, .container {
+    margin: 0px;
+    padding: 0px;
+}
+div {
+    margin: 0px;
+    padding: 0px;
+}

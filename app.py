@@ -27,6 +27,8 @@ import pandas as pd
 import re
 import yt_dlp
 from youtube_transcript_api import YouTubeTranscriptApi
+import subprocess # To wake up Ollama
+import ollama
 
 ################################################################################
 ################################################################################
@@ -150,7 +152,8 @@ def generate_reddit_prompt(
 
     # Include all comments (already filtered in extract_comments)
     text = "\n".join(
-        f"- {row['author']}: {row['body']}"
+        #f"- {row['author']}: {row['body']}"
+        f"- {row['body']}"
         for _, row in df.iterrows()
     )
 
@@ -286,6 +289,7 @@ def generate_youtube_prompt(
     # Combine all text
     text = " ".join(entry["text"] for entry in transcript)
 
+    # Create the prompt
     prompt = (
         f"You are an assistant that summarizes YouTube videos.\n"
         f"Please read the following transcript and provide a concise summary:\n"
@@ -302,85 +306,214 @@ def generate_youtube_prompt(
         f"Transcript:\n\n"
         f"{text}"
     )
-    return prompt[:100000]  # truncate if too long
+    # Truncate if needed then return the prompt
+    return prompt[:100000]
+
+################################################################################
+################################################################################
+# Ollama utilities
+
+def get_ollama_list():
+    # Exécute la commande
+    result = subprocess.run(
+        ["ollama", "list"],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    
+    # Sépare les lignes
+    lines = result.stdout.strip().splitlines()
+    if len(lines) < 2:
+        return pd.DataFrame()
+    
+    # Première ligne = en-têtes
+    headers = re.split(r"\s{2,}", lines[0].strip())
+    
+    # Les lignes suivantes = données
+    data = [re.split(r"\s{2,}", line.strip()) for line in lines[1:]]
+    
+    # Conversion en DataFrame
+    df = pd.DataFrame(data, columns=headers)
+    
+    return df
 
 ################################################################################
 ################################################################################
 # Create the layout of the app
+
+def create_header():
+    return html.Div(
+        children=[
+            html.Img(
+                src="/assets/URL2TLDR_1024x1024.png",
+                style={"height": "40px", "width": "40px", "marginRight": "10px", "display": "block"},
+            ),
+            html.H1(
+                "URL2TLDR",
+                style={"fontSize": "24px", "margin": 0, "lineHeight": "40px", "fontWeight": "600"},
+            ),
+        ],
+        style={
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "center",
+            "marginBottom": "20px",
+            "gap": "10px",
+            #"backgroundColor": "orange",
+            "padding": "0",
+        },
+    )
+
+def create_url_layout():
+    return html.Div(
+        children=[
+            dcc.Input(
+                id="url-input",
+                type="text",
+                placeholder="Paste YouTube or Reddit URL here...",
+                value="",
+                style={
+                    "flex": "1",
+                    "marginRight": "10px",
+                    "height": "40px",
+                    "padding": "0 10px",
+                    "fontSize": "16px",
+                    "border": "2px solid #0d6efd",  # contour plus visible (bleu)
+                    "borderRadius": "5px",          # coins arrondis
+                    "outline": "none",              # supprime le contour par défaut au focus
+                },
+            ),
+            dbc.Button(
+                "Generate TL;DR Prompt",
+                id="generate-btn",
+                color="primary",
+                style={
+                    "height": "40px",     # même hauteur que l'input
+                    "flexShrink": 0,      # ne rétrécit pas si l'espace diminue
+                },
+            ),
+        ],
+        style={
+            "display": "flex",
+            "flexDirection": "row",
+            "width": "100%",           # container prend toute la largeur
+            "marginBottom": "10px",
+        }
+    )
 
 def create_layout():
     return dbc.Container(
         [
             html.Div(
                 children = [
-                    # Header avec icône et titre centrés
+                    create_header(),
+                    create_url_layout(),
                     html.Div(
-                        [
-                            html.Img(
-                                src="/assets/URL2TLDR_1024x1024.png",
-                                style={"height": "50px", "marginRight": "10px"}
-                            ),
-                            html.H1("URL2TLDR", style={"margin": 0})
-                        ],
-                        style={
-                            "display": "flex",
-                            "alignItems": "center",
-                            "justifyContent": "center",
-                            "marginBottom": "20px"
-                        }
+                        id = "status-message",
+                        style = {
+                            "marginTop": "10px",
+                        },
                     ),
-
-                    html.P(
-                        "Instant summaries of YouTube videos and Reddit threads. Paste a URL below to get started!",
-                        style={"textAlign": "center"}
-                    ),
-
-                    dcc.Input(
-                        id="url-input",
-                        type="text",
-                        placeholder="Paste YouTube or Reddit URL here...",
-                        value="",
-                        style={"width": "100%", "marginBottom": "10px"}
-                    ),
-                    html.Br(),
-
-                    dbc.Button("Generate TL;DR Prompt", id="generate-btn", color="primary", className="mb-3"),
-
-                    html.Div(id="status-message", style={"marginTop": "10px"}),
-
                     html.H4("Generated TL;DR Prompt"),
-
-                    # Spinner autour du textarea
                     dcc.Loading(
-                        id="loading-spinner",
+                        id="prompt-spinner",
                         type="circle",
                         children=[
                             dcc.Textarea(
-                                id="prompt-output",
-                                style={"width": "100%", "height": "300px"},
-                                readOnly=True
-                            ),
-                            html.Br(),
-                            dcc.Clipboard(
-                                id="copy-btn",
-                                target_id="prompt-output",
-                                title="Click to copy the prompt to clipboard",
-                                content="📋 Copy Prompt to Clipboard",
-                                style={
-                                    "marginTop": "10px",
-                                    "backgroundColor": "#0d6efd",
-                                    "color": "white",
-                                    "border": "none",
-                                    "padding": "5px 10px",
-                                    "borderRadius": "5px",
-                                    "cursor": "pointer",
-                                    "display": "none"
+                                value       = "A prompt will appear here once you click the blue button.",
+                                id          = "prompt-output",
+                                placeholder = "Please generate a prompt",
+                                style       = {
+                                    "width": "100%",
+                                    "height": "200px",
                                 },
-                            )
+                                readOnly    = False, # Let the user edit the prompt if needed
+                            ),
                         ],
                         color="#0d6efd",
                         fullscreen=False
-                    )
+                    ),
+                    html.Div(
+                        children = [
+                            dcc.Clipboard(
+                                id        = "copy-btn",
+                                target_id = "prompt-output",
+                                title     = "Click to copy the prompt to clipboard",
+                                content   = "📋 Copy Prompt to Clipboard",
+                                style     = {
+                                    "backgroundColor": "#0d6efd",
+                                    "color": "white",
+                                    "border": "none",
+                                    "borderRadius": "5px",
+                                    "cursor": "pointer",
+                                    "display": "inline-block",
+                                    "width": "38px",
+                                    "height": "38px",           # carré
+                                    "textAlign": "center",      # centre horizontal
+                                    "lineHeight": "36px",       # centre vertical
+                                    "padding": "0",             # pas de padding qui déforme
+                                    'margin': '0px',
+                                    'padding': '0',
+                                },
+                            ),
+                            dbc.Button(
+                                "Wake Ollama",
+                                id        = "wake-ollama-btn",
+                                color     = "primary",
+                                style     = {
+                                    'marginLeft': '20px',
+                                },
+                            ),
+                            dcc.Dropdown(
+                                id        = "model-dropdown",
+                                options   = [],       # aucune option au départ
+                                value     = None,       # pas de valeur sélectionnée
+                                clearable = False,  # pas de croix pour supprimer la sélection
+                                style     = {
+                                    "width": "200px",
+                                    "marginLeft": "10px",
+                                    "height": "38px",  # même hauteur que le bouton
+                                    "fontSize": "14px",
+                                }
+                            ),
+                            dbc.Button(
+                                "Run Ollama",
+                                id        = "run-ollama-btn",
+                                color     = "primary",
+                                style     = {
+                                    'marginLeft': '30px',
+                                },
+                            ),
+                        ],
+                        style = {
+                            'display': 'flex',
+                            'flexDirection': 'row',
+                            #'backgroundColor': 'orange',
+                            'padding': '0',
+                            'margin': '0',
+                            'marginTop': '10px',
+                            'marginBottom': '10px',
+                        },
+                    ),
+                    dcc.Loading(
+                        id="ollama-spinner",
+                        type="circle",
+                        children=[
+                            dcc.Textarea(
+                                value       = "Ollama's answer will appear here.",
+                                id          = "ollama-output",
+                                placeholder = "Please wake Ollama, choose and model and click the blue button",
+                                style       = {
+                                    "width": "100%",
+                                    "height": "200px",
+                                },
+                                readOnly    = False, # Let the user edit the prompt if needed
+                            ),
+                        ],
+                        color="#0d6efd",
+                        fullscreen=False
+                    ),
                 ],
                 style = {
                     "backgroundColor": "white",
@@ -389,18 +522,17 @@ def create_layout():
                     "padding": "30px",
                     "maxWidth": "800px",
                     "margin": "40px auto",
-                    "boxSizing": "border-box"
+                    "boxSizing": "border-box",
+                    "width": "700px",
                 },
             ),
         ],
-        fluid=True,
+        fluid = True,
         style = {
             "backgroundColor": "#777777",
             "minHeight": "100vh",
             "display": "flex",
-            "alignItems": "center",
-            "justifyContent": "center",
-            "overflowY": "auto"
+            "overflowY": "auto",
         }
     )
 
@@ -417,7 +549,7 @@ def register_callbacks(
         Output("status-message", "children"),
         Input("generate-btn", "n_clicks"),
         State("url-input", "value"),
-        prevent_initial_call=True
+        prevent_initial_call=True,
     )
     def generate_prompt(n_clicks, url):
         if not url:
@@ -473,26 +605,62 @@ def register_callbacks(
         else:
             return "", dbc.Alert("⚠️ Only Reddit or YouTube URLs are supported for now.", color="warning")
 
+    @app.callback(
+        Output("model-dropdown", "options"),
+        Output("model-dropdown", "value"),  # optionnel : sélectionne la première valeur
+        Input("wake-ollama-btn", "n_clicks"),
+        prevent_initial_call=True
+    )
+    def populate_model_dropdown(n_clicks):
+        try:
+            df = get_ollama_list()
+            if df.empty:
+                return [], None
+
+            # Crée les options pour le dropdown
+            options = [{"label": name, "value": name} for name in df["NAME"]]
+
+            # Par défaut, on peut sélectionner le premier modèle
+            first_value = options[0]["value"] if options else None
+
+            return options, first_value
+
+        except Exception as e:
+            print("Erreur en récupérant la liste des modèles :", e)
+            return [], None
 
     @app.callback(
-        Output("copy-btn", "style"),
-        Input("prompt-output", "value")
+        Output("ollama-output", "value"),
+        Input("run-ollama-btn", "n_clicks"),
+        State("model-dropdown", "value"),
+        State("prompt-output", "value"),
+        prevent_initial_call=True
     )
-    def toggle_copy_button(prompt_text):
-        base_style = {
-            "marginTop": "10px",
-            "backgroundColor": "#0d6efd",
-            "color": "white",
-            "border": "none",
-            "padding": "5px 10px",
-            "borderRadius": "5px",
-            "cursor": "pointer",
-        }
-        if prompt_text and prompt_text.strip():
-            base_style["display"] = "inline-block"
-        else:
-            base_style["display"] = "none"
-        return base_style
+    def run_ollama(
+        n_clicks,
+        model_name,
+        prompt_text,
+    ):
+        if not model_name or not prompt_text:
+            return "Please wake Ollama, select a model, and enter a prompt."
+
+        try:
+            # Appel du modèle Ollama
+            response = ollama.chat(
+                model=model_name,
+                messages=[{"role": "user", "content": prompt_text}]
+            )
+
+            # Extraire uniquement le texte
+            if hasattr(response, "message") and hasattr(response.message, "content"):
+                return response.message.content.strip()
+            elif isinstance(response, dict) and "message" in response and "content" in response["message"]:
+                return response["message"]["content"].strip()
+            else:
+                return str(response)
+
+        except Exception as e:
+            return f"Error while running Ollama: {e}"
 
 ################################################################################
 ################################################################################

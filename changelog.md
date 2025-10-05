@@ -1,3 +1,14 @@
+## 0.1.4 (2025-10-04)
+
+- Reorganized the header of the app and removed the textual description of the app.
+- The generate prompt button is now to the right of the URL.
+- The size of the copy to clipboard button is now constant.
+- New requirement for the library `ollama`.
+- New button *Wake Ollama* to wake up Ollama and list the available models.
+- New dropdown for the list of available Ollama models.
+- New button *Run Ollama*.
+- New text box the the result of Ollama.
+
 ## 0.1.3 (2025-10-02)
 
 - Added `yt-dlp` in the `README`.

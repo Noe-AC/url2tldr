@@ -70,6 +70,7 @@ The URL2TLDR Dash app requires the following Python libraries:
 - ``pandas``: for data manipulation.
 - ``yt-dlp``: to fetch Youtube video metadata.
 - ``youtube-transcript-api``: to fetch YouTube video transcripts.
+- ``ollama``: to run ollama prompts from inside the app.
 
 ## 💡 Usage
 
