@@ -30,6 +30,9 @@ from youtube_transcript_api import YouTubeTranscriptApi
 import subprocess # To wake up Ollama
 import ollama
 
+TEXTBOX_HEIGHT = "250px"
+SPINNER_TYPE = "dot"
+
 ################################################################################
 ################################################################################
 # Reddit utility functions
@@ -144,7 +147,7 @@ def generate_reddit_prompt(
         meta (dict): Metadata with keys like title, subreddit, author, etc.
         df (pd.DataFrame): Flattened Reddit comments.
 
-    Returns:
+    Returns:N
         str: Prompt ready to paste into a LLM.
     """
     if df.empty:
@@ -317,9 +320,9 @@ def get_ollama_list():
     # Exécute la commande
     result = subprocess.run(
         ["ollama", "list"],
-        capture_output=True,
-        text=True,
-        check=True
+        capture_output = True,
+        text           = True,
+        check          = True,
     )
     
     # Sépare les lignes
@@ -343,15 +346,27 @@ def get_ollama_list():
 # Create the layout of the app
 
 def create_header():
-    return html.Div(
+    return html.A(
+        href="https://github.com/Noe-AC/url2tldr",
+        target="_blank",  # ouvre dans un nouvel onglet
         children=[
             html.Img(
                 src="/assets/URL2TLDR_1024x1024.png",
-                style={"height": "40px", "width": "40px", "marginRight": "10px", "display": "block"},
+                style={
+                    "height": "40px",
+                    "width": "40px",
+                    "marginRight": "10px",
+                    "display": "block",
+                },
             ),
             html.H1(
                 "URL2TLDR",
-                style={"fontSize": "24px", "margin": 0, "lineHeight": "40px", "fontWeight": "600"},
+                style={
+                    "fontSize": "24px",
+                    "margin": 0,
+                    "lineHeight": "40px",
+                    "fontWeight": "600",
+                },
             ),
         ],
         style={
@@ -360,8 +375,10 @@ def create_header():
             "justifyContent": "center",
             "marginBottom": "20px",
             "gap": "10px",
-            #"backgroundColor": "orange",
             "padding": "0",
+            "textDecoration": "none",  # retire le soulignement
+            "color": "inherit",         # garde la couleur du texte
+            "cursor": "pointer",        # curseur main au survol
         },
     )
 
@@ -369,11 +386,11 @@ def create_url_layout():
     return html.Div(
         children=[
             dcc.Input(
-                id="url-input",
-                type="text",
-                placeholder="Paste YouTube or Reddit URL here...",
-                value="",
-                style={
+                id          = "url-input",
+                type        = "text",
+                placeholder = "Paste YouTube or Reddit URL here...",
+                value       = "",
+                style       = {
                     "flex": "1",
                     "marginRight": "10px",
                     "height": "40px",
@@ -385,7 +402,7 @@ def create_url_layout():
                 },
             ),
             dbc.Button(
-                "Generate TL;DR Prompt",
+                "Generate prompt",
                 id="generate-btn",
                 color="primary",
                 style={
@@ -402,9 +419,115 @@ def create_url_layout():
         }
     )
 
+def create_mid_buttons_layout():
+    return html.Div(
+        children=[
+            html.Div(
+                dcc.Clipboard(
+                    id="prompt-to-clipboard-btn",
+                    target_id="prompt-output",
+                    title="Copy the prompt to the clipboard",
+                    style={
+                        "backgroundColor": "#0d6efd",
+                        "color": "white",
+                        "border": "none",
+                        "borderRadius": "5px",
+                        "cursor": "pointer",
+                        "display": "inline-block",
+                        "width": "38px",
+                        "height": "38px",
+                        "textAlign": "center",
+                        "lineHeight": "36px",
+                        "padding": "0",
+                    },
+                ),
+                style={
+                    "flex": "0 0 auto",
+                },
+            ),
+            html.Div(
+                children=[
+                    dbc.Button(
+                        "Get Ollama models",
+                        id="get-ollama-models-btn",
+                        color="primary",
+                        style={"marginRight": "10px"},
+                    ),
+                    dcc.Loading(
+                        id="model-dropdown-spinner",
+                        type=SPINNER_TYPE,
+                        children=[
+                            dcc.Dropdown(
+                                id          = "model-dropdown",
+                                options     = [],
+                                value       = None,
+                                clearable   = False,
+                                placeholder = "Choose Ollama model",
+                                style       = {
+                                    "width": "200px",
+                                    "height": "38px",
+                                    "fontSize": "14px",
+                                    "marginRight": "10px",
+                                    "border": "none",           # désactive le border de react-select
+                                    "borderRadius": "5px",
+                                    "boxShadow": "0 0 0 2px #0d6efd inset",  # contour bleu
+                                },
+                            ),
+                        ],
+                        color="#0d6efd",
+                        fullscreen=False
+                    ),
+
+                    dbc.Button(
+                        "Run Ollama",
+                        id="run-ollama-btn",
+                        color="primary",
+                    ),
+                ],
+                style={
+                    "display": "flex",
+                    "alignItems": "center",
+                    "justifyContent": "center",
+                    "flex": "1",  # occupe tout l'espace central
+                },
+            ),
+
+            html.Div(
+                dcc.Clipboard(
+                    id="ollama-to-clipboard-btn",
+                    target_id="ollama-output",
+                    title="Copy Ollama's result to the clipboard",
+                    style={
+                        "backgroundColor": "#0d6efd",
+                        "color": "white",
+                        "border": "none",
+                        "borderRadius": "5px",
+                        "cursor": "pointer",
+                        "display": "inline-block",
+                        "width": "38px",
+                        "height": "38px",
+                        "textAlign": "center",
+                        "lineHeight": "36px",
+                        "padding": "0",
+                    },
+                ),
+                style={"flex": "0 0 auto"},
+            ),
+        ],
+        style={
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "space-between",
+            "marginTop": "10px",
+            "marginBottom": "10px",
+            "width": "100%",
+        },
+    )
+
+
 def create_layout():
-    return dbc.Container(
-        [
+    return html.Div(
+        children = [
             html.Div(
                 children = [
                     create_header(),
@@ -415,18 +538,20 @@ def create_layout():
                             "marginTop": "10px",
                         },
                     ),
-                    html.H4("Generated TL;DR Prompt"),
                     dcc.Loading(
                         id="prompt-spinner",
-                        type="circle",
+                        type=SPINNER_TYPE,
                         children=[
                             dcc.Textarea(
-                                value       = "A prompt will appear here once you click the blue button.",
+                                value       = "The generated prompt will appear here.",
                                 id          = "prompt-output",
                                 placeholder = "Please generate a prompt",
                                 style       = {
                                     "width": "100%",
-                                    "height": "200px",
+                                    "height": TEXTBOX_HEIGHT,
+                                    "border": "2px solid #0d6efd",
+                                    "borderRadius": "5px",
+                                    "outline": "none",
                                 },
                                 readOnly    = False, # Let the user edit the prompt if needed
                             ),
@@ -434,79 +559,24 @@ def create_layout():
                         color="#0d6efd",
                         fullscreen=False
                     ),
-                    html.Div(
-                        children = [
-                            dcc.Clipboard(
-                                id        = "copy-btn",
-                                target_id = "prompt-output",
-                                title     = "Click to copy the prompt to clipboard",
-                                content   = "📋 Copy Prompt to Clipboard",
-                                style     = {
-                                    "backgroundColor": "#0d6efd",
-                                    "color": "white",
-                                    "border": "none",
-                                    "borderRadius": "5px",
-                                    "cursor": "pointer",
-                                    "display": "inline-block",
-                                    "width": "38px",
-                                    "height": "38px",           # carré
-                                    "textAlign": "center",      # centre horizontal
-                                    "lineHeight": "36px",       # centre vertical
-                                    "padding": "0",             # pas de padding qui déforme
-                                    'margin': '0px',
-                                    'padding': '0',
-                                },
-                            ),
-                            dbc.Button(
-                                "Wake Ollama",
-                                id        = "wake-ollama-btn",
-                                color     = "primary",
-                                style     = {
-                                    'marginLeft': '20px',
-                                },
-                            ),
-                            dcc.Dropdown(
-                                id        = "model-dropdown",
-                                options   = [],       # aucune option au départ
-                                value     = None,       # pas de valeur sélectionnée
-                                clearable = False,  # pas de croix pour supprimer la sélection
-                                style     = {
-                                    "width": "200px",
-                                    "marginLeft": "10px",
-                                    "height": "38px",  # même hauteur que le bouton
-                                    "fontSize": "14px",
-                                }
-                            ),
-                            dbc.Button(
-                                "Run Ollama",
-                                id        = "run-ollama-btn",
-                                color     = "primary",
-                                style     = {
-                                    'marginLeft': '30px',
-                                },
-                            ),
-                        ],
-                        style = {
-                            'display': 'flex',
-                            'flexDirection': 'row',
-                            #'backgroundColor': 'orange',
-                            'padding': '0',
-                            'margin': '0',
-                            'marginTop': '10px',
-                            'marginBottom': '10px',
-                        },
-                    ),
+                    
+                    create_mid_buttons_layout(),
+
+
                     dcc.Loading(
                         id="ollama-spinner",
-                        type="circle",
+                        type=SPINNER_TYPE,
                         children=[
                             dcc.Textarea(
                                 value       = "Ollama's answer will appear here.",
                                 id          = "ollama-output",
-                                placeholder = "Please wake Ollama, choose and model and click the blue button",
+                                placeholder = "1. list Ollama models, 2. choose a model, 3. click the blue Run Ollama button",
                                 style       = {
                                     "width": "100%",
-                                    "height": "200px",
+                                    "height": TEXTBOX_HEIGHT,
+                                    "border": "2px solid #0d6efd",
+                                    "borderRadius": "5px",
+                                    "outline": "none",
                                 },
                                 readOnly    = False, # Let the user edit the prompt if needed
                             ),
@@ -520,19 +590,21 @@ def create_layout():
                     "borderRadius": "15px",
                     "boxShadow": "0px 4px 15px rgba(0,0,0,0.2)",
                     "padding": "30px",
-                    "maxWidth": "800px",
-                    "margin": "40px auto",
+                    #"margin": "40px auto",
                     "boxSizing": "border-box",
-                    "width": "700px",
+                    "height": "auto",
+                    "display": "flex",
+                    "flexDirection": "column",
+                    "justifyContent": "flex-start",
                 },
             ),
         ],
-        fluid = True,
         style = {
             "backgroundColor": "#777777",
             "minHeight": "100vh",
-            "display": "flex",
             "overflowY": "auto",
+            "padding": "40px",
+            "display": "block",
         }
     )
 
@@ -608,7 +680,7 @@ def register_callbacks(
     @app.callback(
         Output("model-dropdown", "options"),
         Output("model-dropdown", "value"),  # optionnel : sélectionne la première valeur
-        Input("wake-ollama-btn", "n_clicks"),
+        Input("get-ollama-models-btn", "n_clicks"),
         prevent_initial_call=True
     )
     def populate_model_dropdown(n_clicks):
@@ -641,8 +713,10 @@ def register_callbacks(
         model_name,
         prompt_text,
     ):
-        if not model_name or not prompt_text:
-            return "Please wake Ollama, select a model, and enter a prompt."
+        if not prompt_text:
+            return "Please enter a prompt."
+        if not model_name:
+            return "Please list Ollama models then select a model."
 
         try:
             # Appel du modèle Ollama

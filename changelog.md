@@ -1,4 +1,14 @@
-## 0.1.5 (2025-10-05)
+## 0.1.6 (2025-10-05)
+
+- Shortened the text in the *Generate prompt* button.
+- The header of the app is now a link to the github of the project.
+- Fixed the height of the main div that was too long.
+- New button to copy Ollama's result to the clipboard.
+- The triple *list ollama models button* + *choose ollama model dropdown* + *run ollama button* is now centered and the *copy ollama' result to clipboard button* is to the right.
+- New spinner running while the Ollama models are being retried.
+- New screenshot in the `README`.
+
+## 0.1.5 (2025-10-04)
 
 - New screenshot in the `README`.
 
