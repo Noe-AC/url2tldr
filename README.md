@@ -28,40 +28,16 @@ Simply paste a URL, and URL2TLDR will create a ready-to-use prompt that you can 
 
 ## 🛠️ Installation
 
-1. **Clone the repository:**
+Make sure Python 3.9+ is installed with pip.
+
+1. **Install the library:**
    ```bash
-	git clone https://github.com/Noe-AC/url2tldr.git
-	cd url2tldr
+	pip install git+https://github.com/Noe-AC/url2tldr.git
    ```
 
-2. **Create a virtual environment (recommended):**
+2. **Run the app:**
    ```bash
-	python3 -m venv venv
-   ```
-
-3. **Activate the virtual environment:**
-
-- On macOS / Linux:
-   ```bash
-	source venv/bin/activate
-   ```
-- On Windows (Command Prompt):
-   ```bash
-	venv\Scripts\activate.bat
-   ```
-- On Windows (PowerShell):
-   ```bash
-	venv\Scripts\Activate.ps1
-   ```
-
-4. **Install the requirements:**
-   ```bash
-	pip install -r requirements.txt
-   ```
-
-5. **Run the app:**
-   ```bash
-	python app.py
+	url2tldr
    ```
 
 ## 🧩 Requirements
@@ -78,7 +54,7 @@ The URL2TLDR Dash app requires the following Python libraries:
 
 ## 💡 Usage
 
-1. Launch the URL2TLDR Dash app with ``python app.py``.
+1. Once installed, launch the URL2TLDR Dash app with the bash command ``url2tldr``.
 2. Paste a YouTube video URL or a Reddit thread URL.
 3. Review the extracted text (captions or comments).
 4. Copy the generated TL;DR prompt.

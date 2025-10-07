@@ -1,3 +1,13 @@
+## 0.1.8 (2025-10-06)
+
+- New folder `src`.
+- New folder `src/url2tldr`.
+- Moved the file `app.py` to the folder `src/url2tldr`.
+- New file `__init__.py` in the folder `src/url2tldr`.
+- New file `pyproject.toml`.
+- The file `requirements.txt` is removed because the requirements are now in the file `pyproject.toml`.
+
+
 ## 0.1.7 (2025-10-05)
 
 - Improved the `README` to make it more explicit that Ollama is integrated in the app.
