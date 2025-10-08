@@ -1,7 +1,0 @@
-dash
-dash-bootstrap-components
-youtube-transcript-api
-requests
-pandas
-yt-dlp
-ollama

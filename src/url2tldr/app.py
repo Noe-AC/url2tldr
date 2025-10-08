@@ -27,9 +27,11 @@ import subprocess # To wake up Ollama
 import ollama
 import webbrowser
 import os
+import sys
 
-TEXTBOX_HEIGHT = "250px"
+TEXTBOX_HEIGHT = "220px"
 SPINNER_TYPE = "dot"
+MAX_WIDTH = "1000px"
 
 ################################################################################
 ################################################################################
@@ -380,14 +382,16 @@ def create_header():
         },
     )
 
-def create_url_layout():
+def create_url_layout(
+    url = None,
+):
     return html.Div(
         children=[
             dcc.Input(
                 id          = "url-input",
                 type        = "text",
                 placeholder = "Paste YouTube or Reddit URL here...",
-                value       = "",
+                value       = url if url is not None else "",
                 style       = {
                     "flex": "1",
                     "marginRight": "10px",
@@ -475,7 +479,6 @@ def create_mid_buttons_layout():
                         color="#0d6efd",
                         fullscreen=False
                     ),
-
                     dbc.Button(
                         "Run Ollama",
                         id="run-ollama-btn",
@@ -489,7 +492,6 @@ def create_mid_buttons_layout():
                     "flex": "1",  # occupe tout l'espace central
                 },
             ),
-
             html.Div(
                 dcc.Clipboard(
                     id="ollama-to-clipboard-btn",
@@ -522,15 +524,19 @@ def create_mid_buttons_layout():
         },
     )
 
-
-def create_layout():
+def create_layout(
+    url = None,
+):
     return html.Div(
         children = [
             html.Div(
                 children = [
                     create_header(),
-                    create_url_layout(),
+                    create_url_layout(
+                        url = url,
+                    ),
                     html.Div(
+                        children = [],
                         id = "status-message",
                         style = {
                             "marginTop": "10px",
@@ -557,10 +563,7 @@ def create_layout():
                         color="#0d6efd",
                         fullscreen=False
                     ),
-                    
                     create_mid_buttons_layout(),
-
-
                     dcc.Loading(
                         id="ollama-spinner",
                         type=SPINNER_TYPE,
@@ -587,13 +590,15 @@ def create_layout():
                     "backgroundColor": "white",
                     "borderRadius": "15px",
                     "boxShadow": "0px 4px 15px rgba(0,0,0,0.2)",
-                    "padding": "30px",
+                    "padding": "20px",
                     #"margin": "40px auto",
                     "boxSizing": "border-box",
                     "height": "auto",
                     "display": "flex",
                     "flexDirection": "column",
                     "justifyContent": "flex-start",
+                    "maxWidth": MAX_WIDTH,
+                    "margin": "0px auto",
                 },
             ),
         ],
@@ -601,8 +606,9 @@ def create_layout():
             "backgroundColor": "#777777",
             "minHeight": "100vh",
             "overflowY": "auto",
-            "padding": "40px",
+            "padding": "20px",
             "display": "block",
+            "justifyContent": "center",
         }
     )
 
@@ -640,7 +646,8 @@ def register_callbacks(
                             meta = meta,
                             df   = df,
                         )
-                        return prompt, dbc.Alert("✅ Reddit prompt generated!", color="success")
+                        #return prompt, dbc.Alert("✅ Reddit prompt generated!", color="success")
+                        return prompt, []
                     except Exception as e:
                         return "", dbc.Alert(f"❌ Error generating Reddit prompt: {e}", color="danger")
             except Exception as e:
@@ -667,7 +674,8 @@ def register_callbacks(
                     meta       = meta,
                     transcript = transcript,
                 )
-                return prompt, dbc.Alert("✅ YouTube prompt generated!", color="success")
+                #return prompt, dbc.Alert("✅ YouTube prompt generated!", color="success")
+                return prompt, []
             except Exception as e:
                 return "", dbc.Alert(f"❌ Error generating YouTube prompt: {e}", color="danger")
 
@@ -738,7 +746,9 @@ def register_callbacks(
 ################################################################################
 # Create the app
 
-def create_dash_app():
+def create_dash_app(
+    url = None,
+):
 
     # Absolute path to the assets folder inside the package
     assets_path = os.path.join(os.path.dirname(__file__), "assets")
@@ -754,7 +764,9 @@ def create_dash_app():
     )
 
     # Create the layout
-    app.layout = create_layout()
+    app.layout = create_layout(
+        url = url,
+    )
 
     # Register the callbacks
     register_callbacks(
@@ -778,6 +790,12 @@ def main(
     Entry point of the app.
     """
 
+    # Take the URL argument if it's provided
+    if len(sys.argv)>1:
+        url = sys.argv[1]
+    else:
+        url = None
+
     # Reduce the verbosity of Flask / Dash
     if turn_off_logs:
         import logging
@@ -785,7 +803,9 @@ def main(
         log.setLevel(logging.ERROR)
 
     # Create the Dash App
-    app = create_dash_app()
+    app = create_dash_app(
+        url = url,
+    )
 
     # Open a browser
     if open_browser:

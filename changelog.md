@@ -1,3 +1,14 @@
+# Changelog
+
+## 0.1.9 (2025-10-07)
+
+- Reduced the padding of the app to make it smaller. The max width is now `1000px`.
+- The function `create_dash_app` has a new parameter `url`.
+- The function `create_layout` has a new parameter `url`.
+- The function `create_url_layout` has a new parameter `url`.
+- Now, when the captions of the YouTube videos are retrieved of the comments of the Reddit thread retrieved succesfully no success message is shown because it was taking a lot of vertical space.
+- Added support for passing a YouTube or Reddit URL as an argument to the url2tldr command. When provided, the app launches with the URL input field pre-filled.
+
 ## 0.1.8 (2025-10-06)
 
 - New folder `src`.
@@ -6,7 +17,9 @@
 - New file `__init__.py` in the folder `src/url2tldr`.
 - New file `pyproject.toml`.
 - The file `requirements.txt` is removed because the requirements are now in the file `pyproject.toml`.
-
+- Moved the folder `assets` to the folder `src/url2tldr`.
+- Updated the installation text in the `README`.
+- Now it is possible to do `pip install .` so that the command `url2tldr` opens the app with a Terminal from anywhere in the computer without `cd` to the directory of the project.
 
 ## 0.1.7 (2025-10-05)
 
