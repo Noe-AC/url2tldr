@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.10 (2025-10-07)
+
+- Updated the screenshot in the `README`.
+
 ## 0.1.9 (2025-10-07)
 
 - Reduced the padding of the app to make it smaller. The max width is now `1000px`.

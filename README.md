@@ -63,7 +63,7 @@ The URL2TLDR Dash app requires the following Python libraries:
 
 ## 📸 Screenshots
 
-![URL2TLDR Screenshot](screenshots/screenshot-v0.1.6.png)
+![URL2TLDR Screenshot](screenshots/screenshot-v0.1.10.png)
 
 ## ⚖️ License
 
