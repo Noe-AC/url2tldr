@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.11 (2025-10-08)
+
+- Updated the `README` to reflect two new features: 1. integration of Ollama in the app, 2. bash command `url2tldr`.
+
 ## 0.1.10 (2025-10-07)
 
 - Updated the screenshot in the `README`.
