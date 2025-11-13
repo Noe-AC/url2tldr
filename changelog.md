@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.12 (2025-11-12)
+
+- New mode to generate the review of a YouTube video in french.
+
 ## 0.1.11 (2025-10-08)
 
 - Updated the `README` to reflect two new features: 1. integration of Ollama in the app, 2. bash command `url2tldr`.

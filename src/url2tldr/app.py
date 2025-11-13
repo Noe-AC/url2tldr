@@ -33,6 +33,9 @@ TEXTBOX_HEIGHT = "220px"
 SPINNER_TYPE = "dot"
 MAX_WIDTH = "1000px"
 
+#PROMPT_LANGUAGE = 'en'
+PROMPT_LANGUAGE = 'fr'
+
 ################################################################################
 ################################################################################
 # Reddit utility functions
@@ -293,21 +296,32 @@ def generate_youtube_prompt(
     text = " ".join(entry["text"] for entry in transcript)
 
     # Create the prompt
-    prompt = (
-        f"You are an assistant that summarizes YouTube videos.\n"
-        f"Please read the following transcript and provide a concise summary:\n"
-        f"- Only include the most relevant information and insights.\n"
-        f"- Format your output as clear bullet points.\n"
-        f"- Avoid unnecessary repetition or minor details.\n\n"
-        f"Video information:\n"
-        f"- Title: {meta['title']}\n"
-        f"- Channel: {meta['channel']}\n"
-        f"- URL: {meta['url']}\n"
-        f"- Length (seconds): {meta['length_seconds']}\n"
-        f"- Publish date: {meta['publish_date']}\n"
-        f"- Views: {meta['views']}\n\n"
-        f"Transcript:\n\n"
-        f"{text}"
+    if PROMPT_LANGUAGE=='fr':
+        prompt = (
+            f"J'ai besoin de :\n"
+            f"\n- Un résumé en un seul paragraphe."
+            f"\n- Un titre en une ligne qui résume le paragraphe."
+            f"\n- Une note de crédibilité sur 10."
+        )
+    else:
+        prompt = (
+            f"I need:\n"
+            f"\n- A summary in a single paragraph."
+            f"\n- A one-line title that summarizes the paragraph."
+            f"\n- A credibility score out of 10."
+        )
+
+    # Add the video informations to the prompt
+    prompt += (
+        f"\n\nVideo information:"
+        f"\n- Title: {meta['title']}"
+        f"\n- Channel: {meta['channel']}"
+        f"\n- URL: {meta['url']}"
+        f"\n- Length (seconds): {meta['length_seconds']}"
+        f"\n- Publish date: {meta['publish_date']}"
+        f"\n- Views: {meta['views']}"
+        f"\n\nTranscript:"
+        f"\n\n{text}"
     )
     # Truncate if needed then return the prompt
     return prompt[:100000]
