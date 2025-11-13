@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.13 (2025-11-12)
+
+- Now the `dcc.Input` of the URL input is responsive to pressing Enter, which now triggers the same callback as the *Generate prompt* button.
+
 ## 0.1.12 (2025-11-12)
 
 - New mode to generate the review of a YouTube video in french.

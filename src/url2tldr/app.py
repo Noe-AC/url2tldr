@@ -634,14 +634,20 @@ def register_callbacks(
     app,
 ):
 
+    # Un callback pour générer le prompt à partir de l'URL
     @app.callback(
         Output("prompt-output", "value"),
         Output("status-message", "children"),
         Input("generate-btn", "n_clicks"),
+        Input("url-input", "n_submit"),
         State("url-input", "value"),
         prevent_initial_call=True,
     )
-    def generate_prompt(n_clicks, url):
+    def generate_prompt(
+        n_clicks,
+        n_submit,
+        url,
+    ):
         if not url:
             return "", dbc.Alert("⚠️ Please enter a URL first.", color="warning")
 
